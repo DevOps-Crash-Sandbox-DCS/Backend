@@ -11,6 +11,7 @@ import (
 	"DCS/internal/config"
 	"DCS/internal/database"
 	apphttp "DCS/internal/http"
+	"DCS/internal/scenarios"
 )
 
 func main() {
@@ -37,10 +38,15 @@ func main() {
 	authService := auth.NewService(authRepo, jwtManager)
 	authHandler := auth.NewHandler(authService)
 
+	scenariosRepo := scenarios.NewRepository(db)
+	scenariosService := scenarios.NewService(scenariosRepo)
+	scenariosHandler := scenarios.NewHandler(scenariosService)
+
 	router := apphttp.NewRouter(apphttp.RouterDeps{
-		DB:          db,
-		AuthHandler: authHandler,
-		JWTManager:  jwtManager,
+		DB:               db,
+		AuthHandler:      authHandler,
+		ScenariosHandler: scenariosHandler,
+		JWTManager:       jwtManager,
 	})
 
 	addr := ":" + cfg.HTTPPort
