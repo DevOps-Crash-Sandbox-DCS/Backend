@@ -125,3 +125,54 @@ func (r *Repository) GetByID(ctx context.Context, id string) (*Scenario, error) 
 
 	return &scenario, nil
 }
+
+func (r *Repository) GetStepsByScenarioID(ctx context.Context, scenarioID string) ([]ScenarioStep, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT
+			id,
+			scenario_id,
+			step_order,
+			title,
+			description,
+			hint,
+			expected_command,
+			expected_result,
+			created_at
+		FROM scenario_steps
+		WHERE scenario_id = $1
+		ORDER BY step_order ASC
+	`, scenarioID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	steps := make([]ScenarioStep, 0)
+
+	for rows.Next() {
+		var step ScenarioStep
+
+		err := rows.Scan(
+			&step.ID,
+			&step.ScenarioID,
+			&step.Order,
+			&step.Title,
+			&step.Description,
+			&step.Hint,
+			&step.ExpectedCommand,
+			&step.ExpectedResult,
+			&step.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		steps = append(steps, step)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return steps, nil
+}

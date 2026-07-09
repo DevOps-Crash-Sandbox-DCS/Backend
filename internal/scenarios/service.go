@@ -27,13 +27,18 @@ func (s *Service) GetAll(ctx context.Context) ([]ScenarioResponse, error) {
 	return response, nil
 }
 
-func (s *Service) GetByID(ctx context.Context, id string) (*ScenarioResponse, error) {
+func (s *Service) GetByID(ctx context.Context, id string) (*ScenarioDetailsResponse, error) {
 	scenario, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	response := ToScenarioResponse(*scenario)
+	steps, err := s.repo.GetStepsByScenarioID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	response := ToScenarioDetailsResponse(*scenario, steps)
 
 	return &response, nil
 }

@@ -17,3 +17,15 @@ type Scenario struct {
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 }
+
+type ScenarioStep struct {
+	ID              string
+	ScenarioID      string
+	Order           int
+	Title           string
+	Description     string
+	Hint            string
+	ExpectedCommand string
+	ExpectedResult  string
+	CreatedAt       time.Time
+}
