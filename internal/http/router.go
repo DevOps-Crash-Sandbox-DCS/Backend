@@ -8,12 +8,14 @@ import (
 
 	"DCS/internal/auth"
 	"DCS/internal/http/middleware"
+	"DCS/internal/scenarios"
 )
 
 type RouterDeps struct {
-	DB          *pgxpool.Pool
-	AuthHandler *auth.Handler
-	JWTManager  *auth.JWTManager
+	DB               *pgxpool.Pool
+	AuthHandler      *auth.Handler
+	ScenariosHandler *scenarios.Handler
+	JWTManager       *auth.JWTManager
 }
 
 func NewRouter(deps RouterDeps) *gin.Engine {
@@ -55,6 +57,12 @@ func NewRouter(deps RouterDeps) *gin.Engine {
 				"role":  role,
 			})
 		})
+
+		scenariosGroup := protected.Group("/scenarios")
+		{
+			scenariosGroup.GET("", deps.ScenariosHandler.GetAll)
+			scenariosGroup.GET("/:id", deps.ScenariosHandler.GetByID)
+		}
 	}
 
 	return router
