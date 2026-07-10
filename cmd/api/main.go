@@ -7,6 +7,7 @@ import (
 
 	"github.com/joho/godotenv"
 
+	"DCS/internal/actions"
 	"DCS/internal/auth"
 	"DCS/internal/config"
 	"DCS/internal/database"
@@ -47,11 +48,16 @@ func main() {
 	sessionsService := sessions.NewService(sessionsRepo)
 	sessionsHandler := sessions.NewHandler(sessionsService)
 
+	actionsRepo := actions.NewRepository(db)
+	actionsService := actions.NewService(actionsRepo)
+	actionsHandler := actions.NewHandler(actionsService)
+
 	router := apphttp.NewRouter(apphttp.RouterDeps{
 		DB:               db,
 		AuthHandler:      authHandler,
 		ScenariosHandler: scenariosHandler,
 		SessionsHandler:  sessionsHandler,
+		ActionsHandler:   actionsHandler,
 		JWTManager:       jwtManager,
 	})
 
