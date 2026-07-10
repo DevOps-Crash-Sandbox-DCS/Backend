@@ -9,6 +9,7 @@ import (
 	"DCS/internal/actions"
 	"DCS/internal/auth"
 	"DCS/internal/http/middleware"
+	"DCS/internal/reports"
 	"DCS/internal/scenarios"
 	"DCS/internal/sessions"
 )
@@ -19,6 +20,7 @@ type RouterDeps struct {
 	ScenariosHandler *scenarios.Handler
 	SessionsHandler  *sessions.Handler
 	ActionsHandler   *actions.Handler
+	ReportsHandler   *reports.Handler
 	JWTManager       *auth.JWTManager
 }
 
@@ -73,6 +75,7 @@ func NewRouter(deps RouterDeps) *gin.Engine {
 			sessionsGroup.POST("", deps.SessionsHandler.Create)
 			sessionsGroup.GET("/:id", deps.SessionsHandler.GetByID)
 			sessionsGroup.POST("/:id/actions", deps.ActionsHandler.Submit)
+			sessionsGroup.GET("/:id/report", deps.ReportsHandler.GetSessionReport)
 		}
 	}
 
