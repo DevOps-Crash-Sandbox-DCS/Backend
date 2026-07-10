@@ -75,3 +75,18 @@ func (s *Service) GetByID(ctx context.Context, id uuid.UUID, userID uuid.UUID) (
 
 	return &response, nil
 }
+
+func (s *Service) GetHistory(ctx context.Context, userID uuid.UUID) ([]SessionHistoryItemResponse, error) {
+	items, err := s.repo.GetHistoryByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	response := make([]SessionHistoryItemResponse, 0, len(items))
+
+	for _, item := range items {
+		response = append(response, ToSessionHistoryItemResponse(item))
+	}
+
+	return response, nil
+}

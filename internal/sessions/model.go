@@ -24,3 +24,15 @@ type Session struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }
+
+type SessionHistoryItem struct {
+	ID            uuid.UUID
+	ScenarioID    string
+	ScenarioTitle string
+	Difficulty    string
+	Category      string
+	Status        string
+	Score         int
+	StartedAt     time.Time
+	FinishedAt    *time.Time
+}
