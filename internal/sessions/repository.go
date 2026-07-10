@@ -140,3 +140,55 @@ func (r *Repository) GetByIDAndUserID(ctx context.Context, id uuid.UUID, userID 
 
 	return &session, nil
 }
+
+func (r *Repository) GetHistoryByUserID(ctx context.Context, userID uuid.UUID) ([]SessionHistoryItem, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT
+			s.id,
+			s.scenario_id,
+			sc.title,
+			sc.difficulty,
+			sc.category,
+			s.status,
+			s.score,
+			s.started_at,
+			s.finished_at
+		FROM sessions s
+		INNER JOIN scenarios sc ON sc.id = s.scenario_id
+		WHERE s.user_id = $1
+		ORDER BY s.started_at DESC
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]SessionHistoryItem, 0)
+
+	for rows.Next() {
+		var item SessionHistoryItem
+
+		err := rows.Scan(
+			&item.ID,
+			&item.ScenarioID,
+			&item.ScenarioTitle,
+			&item.Difficulty,
+			&item.Category,
+			&item.Status,
+			&item.Score,
+			&item.StartedAt,
+			&item.FinishedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		items = append(items, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}

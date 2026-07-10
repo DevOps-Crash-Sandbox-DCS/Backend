@@ -72,6 +72,7 @@ func NewRouter(deps RouterDeps) *gin.Engine {
 
 		sessionsGroup := protected.Group("/sessions")
 		{
+			sessionsGroup.GET("", deps.SessionsHandler.GetHistory)
 			sessionsGroup.POST("", deps.SessionsHandler.Create)
 			sessionsGroup.GET("/:id", deps.SessionsHandler.GetByID)
 			sessionsGroup.POST("/:id/actions", deps.ActionsHandler.Submit)

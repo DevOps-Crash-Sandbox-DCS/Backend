@@ -19,19 +19,8 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) Create(c *gin.Context) {
-	userIDValue, exists := c.Get("userId")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "user is not authorized",
-		})
-		return
-	}
-
-	userID, ok := userIDValue.(uuid.UUID)
+	userID, ok := getUserIDFromContext(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "invalid user context",
-		})
 		return
 	}
 
@@ -70,19 +59,8 @@ func (h *Handler) Create(c *gin.Context) {
 }
 
 func (h *Handler) GetByID(c *gin.Context) {
-	userIDValue, exists := c.Get("userId")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "user is not authorized",
-		})
-		return
-	}
-
-	userID, ok := userIDValue.(uuid.UUID)
+	userID, ok := getUserIDFromContext(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "invalid user context",
-		})
 		return
 	}
 
@@ -112,4 +90,41 @@ func (h *Handler) GetByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, session)
+}
+
+func (h *Handler) GetHistory(c *gin.Context) {
+	userID, ok := getUserIDFromContext(c)
+	if !ok {
+		return
+	}
+
+	history, err := h.service.GetHistory(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "internal server error",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, history)
+}
+
+func getUserIDFromContext(c *gin.Context) (uuid.UUID, bool) {
+	userIDValue, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "user is not authorized",
+		})
+		return uuid.Nil, false
+	}
+
+	userID, ok := userIDValue.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "invalid user context",
+		})
+		return uuid.Nil, false
+	}
+
+	return userID, true
 }
