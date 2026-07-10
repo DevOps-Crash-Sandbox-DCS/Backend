@@ -12,6 +12,7 @@ import (
 	"DCS/internal/config"
 	"DCS/internal/database"
 	apphttp "DCS/internal/http"
+	"DCS/internal/reports"
 	"DCS/internal/scenarios"
 	"DCS/internal/sessions"
 )
@@ -52,12 +53,17 @@ func main() {
 	actionsService := actions.NewService(actionsRepo)
 	actionsHandler := actions.NewHandler(actionsService)
 
+	reportsRepo := reports.NewRepository(db)
+	reportsService := reports.NewService(reportsRepo)
+	reportsHandler := reports.NewHandler(reportsService)
+
 	router := apphttp.NewRouter(apphttp.RouterDeps{
 		DB:               db,
 		AuthHandler:      authHandler,
 		ScenariosHandler: scenariosHandler,
 		SessionsHandler:  sessionsHandler,
 		ActionsHandler:   actionsHandler,
+		ReportsHandler:   reportsHandler,
 		JWTManager:       jwtManager,
 	})
 
