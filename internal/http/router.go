@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"DCS/internal/actions"
 	"DCS/internal/auth"
 	"DCS/internal/http/middleware"
 	"DCS/internal/scenarios"
@@ -17,6 +18,7 @@ type RouterDeps struct {
 	AuthHandler      *auth.Handler
 	ScenariosHandler *scenarios.Handler
 	SessionsHandler  *sessions.Handler
+	ActionsHandler   *actions.Handler
 	JWTManager       *auth.JWTManager
 }
 
@@ -70,6 +72,7 @@ func NewRouter(deps RouterDeps) *gin.Engine {
 		{
 			sessionsGroup.POST("", deps.SessionsHandler.Create)
 			sessionsGroup.GET("/:id", deps.SessionsHandler.GetByID)
+			sessionsGroup.POST("/:id/actions", deps.ActionsHandler.Submit)
 		}
 	}
 
