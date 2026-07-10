@@ -9,12 +9,14 @@ import (
 	"DCS/internal/auth"
 	"DCS/internal/http/middleware"
 	"DCS/internal/scenarios"
+	"DCS/internal/sessions"
 )
 
 type RouterDeps struct {
 	DB               *pgxpool.Pool
 	AuthHandler      *auth.Handler
 	ScenariosHandler *scenarios.Handler
+	SessionsHandler  *sessions.Handler
 	JWTManager       *auth.JWTManager
 }
 
@@ -62,6 +64,12 @@ func NewRouter(deps RouterDeps) *gin.Engine {
 		{
 			scenariosGroup.GET("", deps.ScenariosHandler.GetAll)
 			scenariosGroup.GET("/:id", deps.ScenariosHandler.GetByID)
+		}
+
+		sessionsGroup := protected.Group("/sessions")
+		{
+			sessionsGroup.POST("", deps.SessionsHandler.Create)
+			sessionsGroup.GET("/:id", deps.SessionsHandler.GetByID)
 		}
 	}
 
