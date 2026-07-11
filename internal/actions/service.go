@@ -75,7 +75,16 @@ func (s *Service) Submit(
 		return nil, ErrInvalidStep
 	}
 
-	isCorrect := normalizeCommand(command) == normalizeCommand(step.ExpectedCommand)
+	acceptedCommands, err := s.repo.GetAcceptedCommandsByStepID(ctx, stepID)
+	if err != nil {
+		return nil, err
+	}
+
+	isCorrect := IsCommandAccepted(
+		command,
+		step.ExpectedCommand,
+		acceptedCommands,
+	)
 
 	points := 0
 	feedback := "Команда неверная. Проверьте текущий шаг и попробуйте еще раз."
@@ -133,10 +142,4 @@ func (s *Service) Submit(
 		SessionStatus: sessionStatus,
 		SessionScore:  sessionScore,
 	}, nil
-}
-
-func normalizeCommand(command string) string {
-	fields := strings.Fields(strings.TrimSpace(command))
-
-	return strings.Join(fields, " ")
 }
