@@ -167,3 +167,49 @@ func (r *Repository) UpdateSessionProgress(
 
 	return err
 }
+
+func (r *Repository) GetAcceptedCommandsByStepID(ctx context.Context, stepID string) ([]AcceptedCommand, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT
+			id::text,
+			step_id,
+			command,
+			match_type,
+			description,
+			is_active
+		FROM step_accepted_commands
+		WHERE step_id = $1
+		  AND is_active = TRUE
+		ORDER BY created_at ASC
+	`, stepID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]AcceptedCommand, 0)
+
+	for rows.Next() {
+		var item AcceptedCommand
+
+		err := rows.Scan(
+			&item.ID,
+			&item.StepID,
+			&item.Command,
+			&item.MatchType,
+			&item.Description,
+			&item.IsActive,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		items = append(items, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}

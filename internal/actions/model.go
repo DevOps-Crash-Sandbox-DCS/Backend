@@ -32,3 +32,12 @@ type ScenarioStep struct {
 	Order           int
 	ExpectedCommand string
 }
+
+type AcceptedCommand struct {
+	ID          string
+	StepID      string
+	Command     string
+	MatchType   string
+	Description string
+	IsActive    bool
+}

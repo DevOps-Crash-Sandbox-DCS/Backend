@@ -8,10 +8,13 @@ import (
 
 	"DCS/internal/actions"
 	"DCS/internal/auth"
+	"DCS/internal/hints"
 	"DCS/internal/http/middleware"
 	"DCS/internal/reports"
+	"DCS/internal/sandbox"
 	"DCS/internal/scenarios"
 	"DCS/internal/sessions"
+	"DCS/internal/terminal"
 )
 
 type RouterDeps struct {
@@ -22,6 +25,9 @@ type RouterDeps struct {
 	ActionsHandler   *actions.Handler
 	ReportsHandler   *reports.Handler
 	JWTManager       *auth.JWTManager
+	TerminalHandler  *terminal.Handler
+	SandboxHandler   *sandbox.Handler
+	HintsHandler     *hints.Handler
 }
 
 func NewRouter(deps RouterDeps) *gin.Engine {
@@ -77,6 +83,17 @@ func NewRouter(deps RouterDeps) *gin.Engine {
 			sessionsGroup.GET("/:id", deps.SessionsHandler.GetByID)
 			sessionsGroup.POST("/:id/actions", deps.ActionsHandler.Submit)
 			sessionsGroup.GET("/:id/report", deps.ReportsHandler.GetSessionReport)
+			sessionsGroup.GET("/:id/terminal", deps.TerminalHandler.Connect)
+			sessionsGroup.POST("/:id/hints", deps.HintsHandler.Create)
+		}
+
+		sandboxGroup := protected.Group("/sandbox")
+		{
+			sandboxGroup.GET("/:sessionId", deps.SandboxHandler.Get)
+			sandboxGroup.POST("/cleanup", deps.SandboxHandler.Cleanup)
+			sandboxGroup.POST("/start", deps.SandboxHandler.Start)
+			sandboxGroup.POST("/:sessionId/exec", deps.SandboxHandler.Exec)
+			sandboxGroup.DELETE("/:sessionId", deps.SandboxHandler.Stop)
 		}
 	}
 

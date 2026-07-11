@@ -11,10 +11,13 @@ import (
 	"DCS/internal/auth"
 	"DCS/internal/config"
 	"DCS/internal/database"
+	"DCS/internal/hints"
 	apphttp "DCS/internal/http"
 	"DCS/internal/reports"
+	"DCS/internal/sandbox"
 	"DCS/internal/scenarios"
 	"DCS/internal/sessions"
+	"DCS/internal/terminal"
 )
 
 func main() {
@@ -57,6 +60,28 @@ func main() {
 	reportsService := reports.NewService(reportsRepo)
 	reportsHandler := reports.NewHandler(reportsService)
 
+	sandboxRepo := sandbox.NewRepository(db)
+	dockerCLI := sandbox.NewDockerCLI(10 * time.Second)
+	sandboxManager := sandbox.NewManager(dockerCLI, sandboxRepo)
+	sandboxHandler := sandbox.NewHandler(sandboxManager)
+
+	terminalRepo := terminal.NewRepository(db)
+	terminalService := terminal.NewService(terminalRepo)
+	terminalHandler := terminal.NewHandler(
+		sessionsService,
+		actionsService,
+		terminalService,
+		sandboxManager,
+	)
+
+	hintsRepo := hints.NewRepository(db)
+	hintsClient := hints.NewClient(
+		cfg.MLHintsBaseURL,
+		time.Duration(cfg.MLHintsTimeoutSeconds)*time.Second,
+	)
+	hintsService := hints.NewService(hintsRepo, hintsClient)
+	hintsHandler := hints.NewHandler(hintsService)
+
 	router := apphttp.NewRouter(apphttp.RouterDeps{
 		DB:               db,
 		AuthHandler:      authHandler,
@@ -65,6 +90,9 @@ func main() {
 		ActionsHandler:   actionsHandler,
 		ReportsHandler:   reportsHandler,
 		JWTManager:       jwtManager,
+		TerminalHandler:  terminalHandler,
+		SandboxHandler:   sandboxHandler,
+		HintsHandler:     hintsHandler,
 	})
 
 	addr := ":" + cfg.HTTPPort
