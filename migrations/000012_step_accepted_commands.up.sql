@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS step_accepted_commands (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    step_id TEXT NOT NULL REFERENCES scenario_steps(id) ON DELETE CASCADE,
+    step_id VARCHAR(120) NOT NULL REFERENCES scenario_steps(id) ON DELETE CASCADE,
     command TEXT NOT NULL,
     match_type TEXT NOT NULL DEFAULT 'exact',
     description TEXT NOT NULL DEFAULT '',
