@@ -11,6 +11,12 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   backend:
     build:
@@ -25,14 +31,10 @@ services:
       DATABASE_URL: "postgres://postgres:postgres@postgres:5432/incident_simulator?sslmode=disable"
       JWT_SECRET: "dev-secret-change-me"
       JWT_TTL_HOURS: "24"
-      ML_HINTS_BASE_URL: "http://ml-service:8000"
-      ML_HINTS_TIMEOUT_SECONDS: "10"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       postgres:
-        condition: service_healthy
-      ml-service:
         condition: service_healthy
 
 volumes:
