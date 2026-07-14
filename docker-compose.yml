@@ -21,7 +21,6 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile
     container_name: dcs_backend
     restart: unless-stopped
     ports:
@@ -37,5 +36,53 @@ services:
       postgres:
         condition: service_healthy
 
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: postgres_exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@postgres:5432/incident_simulator?sslmode=disable"
+    ports:
+      - "9187:9187"
+    volumes:
+      - ./postgres_exporter.yml:/postgres_exporter.yml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:latest
+    container_name: victoriametrics
+    ports:
+      - "8428:8428"
+    volumes:
+      - victoriametrics-data:/victoria-metrics-data
+      - ./promscrape.yml:/promscrape.yml:ro
+    command:
+      - "--storageDataPath=/victoria-metrics-data"
+      - "--httpListenAddr=:8428"
+      - "--retentionPeriod=30d"
+      - "--promscrape.config=/promscrape.yml"
+    restart: unless-stopped
+    depends_on:
+      - postgres-exporter
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+    depends_on:
+      - victoriametrics
+
 volumes:
   postgres_data:
+  victoriametrics-data:  
+  grafana-data:

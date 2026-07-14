@@ -2,9 +2,12 @@ package http
 
 import (
 	nethttp "net/http"
+	"strconv"  
+    "time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"DCS/internal/actions"
 	"DCS/internal/auth"
@@ -15,6 +18,7 @@ import (
 	"DCS/internal/scenarios"
 	"DCS/internal/sessions"
 	"DCS/internal/terminal"
+	"DCS/internal/metrics"
 )
 
 type RouterDeps struct {
@@ -30,8 +34,25 @@ type RouterDeps struct {
 	HintsHandler     *hints.Handler
 }
 
+func metricsMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        start := time.Now()
+
+        c.Next()
+
+        duration := time.Since(start).Seconds()
+        path := c.FullPath()
+        status := strconv.Itoa(c.Writer.Status())
+        method := c.Request.Method
+
+        metrics.HttpRequestsTotal.WithLabelValues(method, path, status).Inc()
+        metrics.HttpRequestDuration.WithLabelValues(method, path).Observe(duration)
+    }
+}
+
 func NewRouter(deps RouterDeps) *gin.Engine {
 	router := gin.Default()
+	router.Use(metricsMiddleware())
 
 	router.GET("/health", func(c *gin.Context) {
 		if err := deps.DB.Ping(c.Request.Context()); err != nil {
@@ -97,5 +118,6 @@ func NewRouter(deps RouterDeps) *gin.Engine {
 		}
 	}
 
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	return router
 }

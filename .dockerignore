@@ -3,7 +3,7 @@
 
 .env
 .env.*
-!.env.example
+
 
 bin
 tmp
@@ -14,8 +14,8 @@ build
 
 .idea
 .vscode
-
-node_modules
-
-mock_ml/__pycache__
-mock_ml/.venv
+.dockerignore
+docker-compose.yml
+Dockerfile
+LICENSE
+**/*.md
