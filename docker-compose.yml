@@ -30,12 +30,36 @@ services:
       DATABASE_URL: "postgres://postgres:postgres@postgres:5432/incident_simulator?sslmode=disable"
       JWT_SECRET: "dev-secret-change-me"
       JWT_TTL_HOURS: "24"
+<<<<<<< HEAD
+=======
+      AI_HINT_SERVICE_URL: "http://ai-hint-service:8000/api/v1/hint"
+>>>>>>> front_and_ai_service
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       postgres:
         condition: service_healthy
 
+<<<<<<< HEAD
+=======
+  terminal:
+    build:
+      context: ./docker/scenarios/permissions-junior
+    image: dcs-scenario-permissions-junior:dev
+
+  frontend:
+    build:
+      context: ../Frontend
+      args:
+        NEXT_PUBLIC_API_URL: "http://localhost:8080"
+    container_name: dcs_frontend
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    depends_on:
+      - backend
+
+>>>>>>> front_and_ai_service
   postgres-exporter:
     image: quay.io/prometheuscommunity/postgres-exporter:latest
     container_name: postgres_exporter
@@ -82,7 +106,37 @@ services:
     depends_on:
       - victoriametrics
 
+<<<<<<< HEAD
 volumes:
   postgres_data:
   victoriametrics-data:  
   grafana-data:
+=======
+  ai-hint-service:
+    build:
+      context: ./AIDevOpsModel
+      dockerfile: Dockerfile
+    container_name: ai-app
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=production
+    extra_hosts:
+      - "host.docker.internal:host-gateway" 
+    restart: always
+
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama_container
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   ports:
+  #     - "11434:11434"
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+  victoriametrics-data:
+  grafana-data:
+  #ollama_data:
+>>>>>>> front_and_ai_service

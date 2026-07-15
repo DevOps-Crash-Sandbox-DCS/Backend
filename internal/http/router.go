@@ -50,9 +50,34 @@ func metricsMiddleware() gin.HandlerFunc {
     }
 }
 
+<<<<<<< HEAD
 func NewRouter(deps RouterDeps) *gin.Engine {
 	router := gin.Default()
 	router.Use(metricsMiddleware())
+=======
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		origin := c.Request.Header.Get("Origin")
+		if origin != "" {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		}
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if c.Request.Method == nethttp.MethodOptions {
+			c.AbortWithStatus(nethttp.StatusNoContent)
+			return
+		}
+
+		c.Next()
+	}
+}
+
+func NewRouter(deps RouterDeps) *gin.Engine {
+	router := gin.Default()
+	router.Use(metricsMiddleware())
+	router.Use(corsMiddleware())
+>>>>>>> front_and_ai_service
 
 	router.GET("/health", func(c *gin.Context) {
 		if err := deps.DB.Ping(c.Request.Context()); err != nil {
@@ -121,3 +146,8 @@ func NewRouter(deps RouterDeps) *gin.Engine {
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	return router
 }
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> front_and_ai_service
