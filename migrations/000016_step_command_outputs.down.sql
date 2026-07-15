@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS step_command_outputs;

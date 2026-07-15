@@ -1,0 +1,100 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: incident_simulator_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: incident_simulator
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build:
+      context: .
+    container_name: dcs_backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      HTTP_PORT: "8080"
+      DATABASE_URL: "postgres://postgres:postgres@postgres:5432/incident_simulator?sslmode=disable"
+      JWT_SECRET: "dev-secret-change-me"
+      JWT_TTL_HOURS: "24"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../Frontend
+      args:
+        NEXT_PUBLIC_API_URL: "http://localhost:8080"
+    container_name: dcs_frontend
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    depends_on:
+      - backend
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: postgres_exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@postgres:5432/incident_simulator?sslmode=disable"
+    ports:
+      - "9187:9187"
+    volumes:
+      - ./postgres_exporter.yml:/postgres_exporter.yml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:latest
+    container_name: victoriametrics
+    ports:
+      - "8428:8428"
+    volumes:
+      - victoriametrics-data:/victoria-metrics-data
+      - ./promscrape.yml:/promscrape.yml:ro
+    command:
+      - "--storageDataPath=/victoria-metrics-data"
+      - "--httpListenAddr=:8428"
+      - "--retentionPeriod=30d"
+      - "--promscrape.config=/promscrape.yml"
+    restart: unless-stopped
+    depends_on:
+      - postgres-exporter
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+    depends_on:
+      - victoriametrics
+
+volumes:
+  postgres_data:
+  victoriametrics-data:  
+  grafana-data:
