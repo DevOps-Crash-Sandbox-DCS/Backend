@@ -35,6 +35,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+  
+  # terminal-app:
+  #   build:
+  #     context: ./docker/scenarios/permissions-junior
+  #   container_name: terminal-container
+  terminal:
+    build:
+      context: ./docker/scenarios/permissions-junior
+    image: dcs-scenario-permissions-junior:dev
 
   frontend:
     build:
@@ -93,6 +102,7 @@ services:
     restart: unless-stopped
     depends_on:
       - victoriametrics
+
 
 volumes:
   postgres_data:
