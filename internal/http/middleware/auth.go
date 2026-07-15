@@ -1,7 +1,10 @@
 package middleware
 
 import (
+<<<<<<< HEAD
 	"errors"
+=======
+>>>>>>> feature/ai-hint-service
 	"net/http"
 	"strings"
 
@@ -11,6 +14,7 @@ import (
 	"DCS/internal/auth"
 )
 
+<<<<<<< HEAD
 var (
 	errAuthorizationRequired   = errors.New("authorization header is required")
 	errInvalidAuthHeaderFormat = errors.New("invalid authorization header format")
@@ -22,11 +26,32 @@ func AuthMiddleware(jwtManager *auth.JWTManager) gin.HandlerFunc {
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": err.Error(),
+=======
+func AuthMiddleware(jwtManager *auth.JWTManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+
+		if authHeader == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "authorization header is required",
+>>>>>>> feature/ai-hint-service
 			})
 			return
 		}
 
+<<<<<<< HEAD
 		claims, err := jwtManager.Verify(tokenString)
+=======
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "invalid authorization header format",
+			})
+			return
+		}
+
+		claims, err := jwtManager.Verify(parts[1])
+>>>>>>> feature/ai-hint-service
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "invalid or expired token",
@@ -49,6 +74,7 @@ func AuthMiddleware(jwtManager *auth.JWTManager) gin.HandlerFunc {
 		c.Next()
 	}
 }
+<<<<<<< HEAD
 
 // extractToken берёт JWT из заголовка Authorization: Bearer <token>,
 // а если заголовка нет — из query-параметра ?token=... Второй вариант нужен
@@ -71,3 +97,5 @@ func extractToken(c *gin.Context) (string, error) {
 
 	return "", errAuthorizationRequired
 }
+=======
+>>>>>>> feature/ai-hint-service

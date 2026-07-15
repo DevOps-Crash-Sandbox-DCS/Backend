@@ -30,12 +30,13 @@ services:
       DATABASE_URL: "postgres://postgres:postgres@postgres:5432/incident_simulator?sslmode=disable"
       JWT_SECRET: "dev-secret-change-me"
       JWT_TTL_HOURS: "24"
+      AI_HINT_SERVICE_URL: "http://ai-hint-service:8000/api/v1/hint"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       postgres:
         condition: service_healthy
-  
+
   terminal:
     build:
       context: ./docker/scenarios/permissions-junior
@@ -99,8 +100,30 @@ services:
     depends_on:
       - victoriametrics
 
+  ai-hint-service:
+    build:
+      context: ./AIDevOpsModel
+      dockerfile: Dockerfile
+    container_name: ai-app
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=production
+    extra_hosts:
+      - "host.docker.internal:host-gateway" 
+    restart: always
+
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama_container
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   ports:
+  #     - "11434:11434"
+  #   restart: unless-stopped
 
 volumes:
   postgres_data:
-  victoriametrics-data:  
+  victoriametrics-data:
   grafana-data:
+  #ollama_data:
