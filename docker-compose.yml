@@ -36,10 +36,6 @@ services:
       postgres:
         condition: service_healthy
   
-  # terminal-app:
-  #   build:
-  #     context: ./docker/scenarios/permissions-junior
-  #   container_name: terminal-container
   terminal:
     build:
       context: ./docker/scenarios/permissions-junior
