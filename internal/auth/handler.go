@@ -37,11 +37,7 @@ func (h *Handler) Register(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusInternalServerError, gin.H{
-<<<<<<< HEAD
-			"error": "internal server error",
-=======
 			"error": err,
->>>>>>> front_and_ai_service
 		})
 		return
 	}

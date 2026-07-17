@@ -50,11 +50,6 @@ func metricsMiddleware() gin.HandlerFunc {
     }
 }
 
-<<<<<<< HEAD
-func NewRouter(deps RouterDeps) *gin.Engine {
-	router := gin.Default()
-	router.Use(metricsMiddleware())
-=======
 func corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
@@ -77,7 +72,6 @@ func NewRouter(deps RouterDeps) *gin.Engine {
 	router := gin.Default()
 	router.Use(metricsMiddleware())
 	router.Use(corsMiddleware())
->>>>>>> front_and_ai_service
 
 	router.GET("/health", func(c *gin.Context) {
 		if err := deps.DB.Ping(c.Request.Context()); err != nil {
@@ -146,8 +140,5 @@ func NewRouter(deps RouterDeps) *gin.Engine {
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	return router
 }
-<<<<<<< HEAD
-=======
 
 
->>>>>>> front_and_ai_service
