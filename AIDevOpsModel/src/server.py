@@ -1,55 +1,127 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import List
+from pydantic import BaseModel, Field
+from typing import List, Optional
+from datetime import datetime
 import requests
 import uvicorn
+import os
 
 app = FastAPI(
     title="DevOps Crash Sandbox - AI Hint Service",
     description="HTTP API для генерации ML-подсказок студентам"
 )
 
-OLLAMA_URL = "http://ollama:11434/api/generate"
-MODEL_NAME = "qwen2.5-coder:7b"
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434/api/generate")
+MODEL_NAME = os.getenv("MODEL_NAME", "qwen2.5-coder:7b")
 
 
-class HintRequest(BaseModel):
-    crash_name: str
-    crash_description: str
-    command_history: List[str]
-    system_logs: str
+class MLCurrentStep(BaseModel):
+    id: str
+    title: str
+    description: str
+    hint: str = ""
+    expectedCommand: str = ""
+    expectedResult: str = ""
 
 
-class HintResponse(BaseModel):
-    hint_text: str
+class MLActionEntry(BaseModel):
+    stepId: str
+    command: str
+    isCorrect: bool
+    points: int
+    feedback: str = ""
+    createdAt: datetime
 
 
-@app.post("/api/v1/hint", response_model=HintResponse)
-def get_help_hint(request: HintRequest):
-    print(f"[AI Сервер] Получен HTTP-запрос для сценария: {request.crash_name}")
-    if request.command_history:
-        commands_flat = "\n".join([f"- {cmd}" for cmd in request.command_history])
+class MLHintRequest(BaseModel):
+    userId: str
+    sessionId: str
+    scenarioId: str
+    currentStepId: Optional[str] = None
+    sessionStatus: str
+    score: int
+    hintLevel: str = "basic"
+    currentStep: Optional[MLCurrentStep] = None
+    history: List[MLActionEntry] = Field(default_factory=list)
+    recentTerminalOutput: str = ""
+
+
+class MLHintResponse(BaseModel):
+    hint: str
+    confidence: Optional[float] = None
+    source: str = "ml"
+    reasoning: Optional[str] = None
+
+
+@app.get("/health")
+def health():
+    return {
+        "status": "ok",
+        "model": MODEL_NAME
+    }
+
+
+@app.post("/api/v1/hints", response_model=MLHintResponse)
+def get_help_hint(request: MLHintRequest):
+    print(f"[AI Сервер] Получен запрос подсказки для sessionId={request.sessionId}, scenarioId={request.scenarioId}")
+
+    if request.history:
+        commands_flat = "\n".join(
+            [
+                f"- Команда: {item.command}\n"
+                f"  Корректность: {'да' if item.isCorrect else 'нет'}\n"
+                f"  Feedback: {item.feedback or 'нет'}"
+                for item in request.history
+            ]
+        )
     else:
-        commands_flat = "Студент еще не вводил команды в терминале."
+        commands_flat = "Пользователь ещё не вводил команды."
+
+    if request.currentStep:
+        current_step_text = (
+            f"ID шага: {request.currentStep.id}\n"
+            f"Название шага: {request.currentStep.title}\n"
+            f"Описание шага: {request.currentStep.description}\n"
+            f"Встроенная подсказка шага: {request.currentStep.hint or 'нет'}\n"
+            f"Ожидаемая команда: {request.currentStep.expectedCommand or 'не указана'}\n"
+            f"Ожидаемый результат: {request.currentStep.expectedResult or 'не указан'}"
+        )
+    else:
+        current_step_text = "Текущий шаг не указан."
 
     system_instruction = (
-        "Вы — опытный DevOps-наставник. Ваша цель — помочь студенту локализовать и исправить аварию в Linux/Docker среде.\n"
-        "ПРАВИЛА ИГРЫ:\n"
-        "1. КАТЕГОРИЧЕСКИ, АБСОЛЮТНО ЗАПРЕЩЕНО писать готовые консольные команды, утилиты или bash-код для решения или диагностики (например, вместо 'выполни docker stats...', скажи 'посмотри на динамику потребления ресурсов контейнерами').\n"
-        "2. ЗАПРЕЩЕНО использовать форматирование кода (обратные кавычки ` `) для написания названий команд.\n"
-        "3. Всегда анализируй утилиты, которые использует пользователь в истории команд (например, если он использует Git, оцени, правильный ли файл он пытается откатить или проверить через diff)\n"
-        "4. Дай краткую, наталкивающую на правильную мысль подсказку (строго 1-3 предложения), анализируя, что студент УЖЕ сделал правильно.\n"
-        "5. Проанализируй историю команд студента: если он делает что-то не то или смотрит не те файлы, аккуратно укажи на это.\n"
-        "6. Отвечай строго на русском языке, кратко и профессионально.\n"
-        "7. СТРОГО СЛЕДИ ЗА ГРАММАТИКОЙ: правильно склоняй русские слова. Никогда не путай термины: в конфигурациях Linux/Nginx используй 'точка с запятой' для символа ;, а не просто 'запятая'\n"
-        "8. Обращайся к пользователю напрямую (на 'ты' или 'вы'), не говори о нём в третьем лице ('студент')"
+        "Вы — опытный DevOps-наставник. Ваша цель — помочь пользователю локализовать и исправить проблему "
+        "в Linux/Docker/Kubernetes/Git/CI/CD среде.\n\n"
+
+        "ПРАВИЛА:\n"
+        "1. Категорически запрещено писать готовые консольные команды, утилиты или bash-код.\n"
+        "2. Запрещено использовать обратные кавычки для команд, имён файлов и кода.\n"
+        "3. Не раскрывай прямое решение, если уровень подсказки basic.\n"
+        "4. Если уровень detailed — дай более конкретное направление, но без готовой команды.\n"
+        "5. Если уровень direct — можно назвать область, файл, сервис или настройку, но всё равно не писать готовую команду.\n"
+        "6. Анализируй историю действий: что пользователь уже сделал правильно, а где смотрит не туда.\n"
+        "7. Ответ должен быть строго на русском языке.\n"
+        "8. Ответ должен быть кратким: 1-3 предложения.\n"
+        "9. Обращайся к пользователю напрямую, не называй его студентом.\n"
+        "10. Следи за грамотностью. Для символа ; используй термин 'точка с запятой'."
     )
 
     user_prompt = (
-        f"КОНТЕКСТ ТЕКУЩЕГО ИНЦИДЕНТА: {request.crash_description}\n\n"
-        f"ИСТОРИЯ КОМАНД СТУДЕНТА В ТЕРМИНАЛЕ:\n{commands_flat}\n\n"
-        f"ЛОГИ ИЗ АВАРИЙНОГО КОНТЕЙНЕРА:\n{request.system_logs or 'Логи пусты или отсутствуют.'}\n\n"
-        f"Задание: Оцени ситуацию и действия студента. Сформулируй одну точечную подсказку, куда ему двигаться дальше."
+        f"СЦЕНАРИЙ: {request.scenarioId}\n"
+        f"СЕССИЯ: {request.sessionId}\n"
+        f"СТАТУС СЕССИИ: {request.sessionStatus}\n"
+        f"СЧЁТ: {request.score}\n"
+        f"УРОВЕНЬ ПОДСКАЗКИ: {request.hintLevel}\n\n"
+
+        f"ТЕКУЩИЙ ШАГ:\n{current_step_text}\n\n"
+
+        f"ИСТОРИЯ ДЕЙСТВИЙ:\n{commands_flat}\n\n"
+
+        f"ПОСЛЕДНИЙ ВЫВОД ТЕРМИНАЛА:\n"
+        f"{request.recentTerminalOutput or 'Вывод терминала отсутствует.'}\n\n"
+
+        "Задание: оцени ситуацию и действия пользователя. "
+        "Сформулируй одну полезную подсказку, куда двигаться дальше."
     )
 
     payload = {
@@ -63,20 +135,31 @@ def get_help_hint(request: HintRequest):
         response = requests.post(OLLAMA_URL, json=payload, timeout=90)
         response.raise_for_status()
         response_data = response.json()
-        hint_out = response_data.get("response", "Не удалось получить текст подсказки от нейросети.")
+
+        hint_out = response_data.get("response", "").strip()
+
+        if not hint_out:
+            hint_out = "Посмотри на текущий шаг и историю действий: вероятно, следующий диагностический фокус уже виден из последней ошибки."
+
     except Exception as e:
         print(f"[ERROR] Не удалось связаться с Ollama: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Ошибка на стороне AI-микросервиса: Оллама недоступна ({str(e)})"
+            detail=f"Ошибка на стороне AI-микросервиса: Ollama недоступна ({str(e)})"
         )
 
-    return HintResponse(hint_text=hint_out)
+    return MLHintResponse(
+        hint=hint_out,
+        confidence=0.75,
+        source="ml",
+        reasoning="Generated by Ollama model"
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("==================================================")
-    print("AI FastAPI Сервер успешно запускается...")
+    print("AI FastAPI сервер запускается...")
     print(f"Используемая модель Ollama: {MODEL_NAME}")
+    print(f"Ollama URL: {OLLAMA_URL}")
     print("==================================================")
     uvicorn.run(app, host="0.0.0.0", port=8000)

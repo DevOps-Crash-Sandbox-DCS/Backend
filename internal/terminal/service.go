@@ -67,7 +67,6 @@ func (s *Service) GetCommandOutput(ctx context.Context, stepID string, command s
 		}
 	}
 
-	// Fallback, чтобы старые команды не ломались.
 	return &CommandResult{
 		Stdout:   SimulateCommandOutput(command),
 		Stderr:   "",

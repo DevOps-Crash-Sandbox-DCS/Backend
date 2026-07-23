@@ -83,7 +83,6 @@ func (d *DockerCLI) Exec(
 
 	result, err := d.run(ctx, args...)
 	if err != nil {
-		// Для docker exec важно вернуть stdout/stderr/exitCode даже при ошибке команды.
 		return result, nil
 	}
 
