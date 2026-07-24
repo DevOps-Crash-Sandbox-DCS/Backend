@@ -11,7 +11,7 @@ app = FastAPI(
     description="HTTP API для генерации ML-подсказок студентам"
 )
 
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434/api/generate")
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434/api/chat")
 MODEL_NAME = os.getenv("MODEL_NAME", "qwen2.5-coder:7b")
 
 
@@ -126,28 +126,43 @@ def get_help_hint(request: MLHintRequest):
 
     payload = {
         "model": MODEL_NAME,
-        "prompt": user_prompt,
-        "system": system_instruction,
-        "stream": False
+        "messages": [
+            {
+                "role": "system",
+                "content": system_instruction
+            },
+            {
+                "role": "user",
+                "content": user_prompt
+            }
+        ],
+        "stream": False,
+        "options": {
+            "temperature": 0.3
+        }
     }
-
     try:
         response = requests.post(OLLAMA_URL, json=payload, timeout=90)
         response.raise_for_status()
         response_data = response.json()
 
-        hint_out = response_data.get("response", "").strip()
+        hint_out = (
+            response_data
+            .get("message", {})
+            .get("content", "")
+            .strip()
+        )
 
         if not hint_out:
-            hint_out = "Посмотри на текущий шаг и историю действий: вероятно, следующий диагностический фокус уже виден из последней ошибки."
-
+            hint_out = "Посмотри на текущий шаг и историю действий: следующий диагностический фокус должен следовать из последней ошибки."
+    
     except Exception as e:
         print(f"[ERROR] Не удалось связаться с Ollama: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Ошибка на стороне AI-микросервиса: Ollama недоступна ({str(e)})"
         )
-
+    
     return MLHintResponse(
         hint=hint_out,
         confidence=0.75,

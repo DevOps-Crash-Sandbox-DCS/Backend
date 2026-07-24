@@ -11,7 +11,8 @@ const (
 )
 
 type CreateHintRequest struct {
-	Level string `json:"level"`
+	Level                string `json:"level"`
+	RecentTerminalOutput string `json:"recentTerminalOutput"`
 }
 
 type HintResponse struct {

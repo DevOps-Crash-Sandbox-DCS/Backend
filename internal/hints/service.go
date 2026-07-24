@@ -35,7 +35,7 @@ func (s *Service) CreateHint(
 		return nil, err
 	}
 
-	mlReq := buildMLHintRequest(contextData, hintLevel)
+	mlReq := buildMLHintRequest(contextData, hintLevel, req.RecentTerminalOutput)
 
 	mlResp, err := s.client.GetHint(ctx, mlReq)
 	if err != nil {
@@ -76,7 +76,7 @@ func normalizeHintLevel(level string) string {
 	}
 }
 
-func buildMLHintRequest(contextData *SessionContext, hintLevel string) MLHintRequest {
+func buildMLHintRequest(contextData *SessionContext, hintLevel string, recentTerminalOutput string) MLHintRequest {
 	history := make([]MLActionEntry, 0, len(contextData.History))
 
 	for _, item := range contextData.History {
@@ -113,7 +113,7 @@ func buildMLHintRequest(contextData *SessionContext, hintLevel string) MLHintReq
 		HintLevel:            hintLevel,
 		CurrentStep:          currentStep,
 		History:              history,
-		RecentTerminalOutput: "",
+		RecentTerminalOutput: truncateString(strings.TrimSpace(recentTerminalOutput), 4000),
 	}
 }
 
@@ -137,4 +137,16 @@ func buildFallbackHint(contextData *SessionContext, cause error) *MLHintResponse
 		Source:     source,
 		Reasoning:  "ML service unavailable: " + cause.Error(),
 	}
+}
+
+func truncateString(value string, limit int) string {
+	if limit <= 0 {
+		return ""
+	}
+
+	if len(value) <= limit {
+		return value
+	}
+
+	return value[len(value)-limit:]
 }
